@@ -94,6 +94,47 @@ def criar():
 
     return redirect(url_for("inicio"))
 
+# 2. **Adicionar a Rota para Deletar Livros:** -----> Adicione o seguinte código no `app.py` para criar a rota de deleção:
+
+@app.route("/deletar/<int:id>")
+def deletar(id):
+    # Buscar o livro pelo ID
+    livro = Livro.query.get(id)
+    if livro:
+        # Remover o livro do banco de dados
+        db.session.delete(livro)
+        db.session.commit()
+    # Redirecionar de volta para a página inicial
+    return redirect(url_for("inicio"))
+
+#  Adicionar uma Rota para Exibir o Formulário de Edição para atualizar livros 
+
+@app.route("/editar/<int:id>")
+def editar(id):
+    # Buscar o livro pelo ID
+    livro = Livro.query.get(id)
+    if livro:
+        return render_template("editar.html", livro=livro)
+    return redirect(url_for("inicio"))
+
+### 3. **Adicionar a Rota para Processar a Atualização** 1. **Adicionar a Rota `/atualizar/<int:id>` no `app.py`:**
+@app.route("/atualizar/<int:id>", methods=["POST"])
+def atualizar(id):
+    # Buscar o livro pelo ID
+    livro = Livro.query.get(id)
+    if livro:
+        # Atualizar os dados do livro
+        livro.titulo = request.form["titulo"]
+        livro.autor = request.form["autor"]
+        livro.categoria = request.form["categoria"]
+        livro.ano = request.form["ano"]
+        livro.editora = request.form["editora"]
+        db.session.commit()
+    return redirect(url_for("inicio"))
+
+
+
+
 #### 4.5 Iniciar o Servidor Flask ---> 1. **Adicionar o Código para Rodar o Servidor:**
     # No final do `app.py`, adicione o seguinte código para iniciar o servidor Flask:
 
