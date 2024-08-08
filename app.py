@@ -1,16 +1,20 @@
 #configuração pasica até a linha 13
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import pandas as pd
 
 app = Flask(__name__)
-
-# Configuração do banco de dados SQLite
+app.config["SECRET_KEY"] = "sua_chave_secreta"  # Substitua por uma chave secreta segura
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///livros.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
 
 #definir modelo de dados ---> criar a classe livros até a linha 35
 
@@ -33,6 +37,15 @@ class Livro(db.Model):
 
     def __repr__(self):
         return f"<Livro {self.titulo}>"
+    
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), nullable=False, unique=True)
+    password = db.Column(db.String(150), nullable=False)
+
+    def __init__(self, username, password):
+        self.username = username
+        self.password = bcrypt.generate_password_hash(password).decode('utf-8')
     
     #criar tabela e inserir dados iniciais 
 
@@ -131,6 +144,84 @@ def atualizar(id):
         livro.editora = request.form["editora"]
         db.session.commit()
     return redirect(url_for("inicio"))
+
+# 1. **Importações Necessárias e Configurações:** ------> No `app.py`, importe as bibliotecas necessárias e configure o Flask-Login.
+       # estão nas linhas 8 a 16
+
+#2. **Criação do Modelo de Usuário:**
+    # Adicione um modelo de usuário para armazenar informações de login.
+
+
+
+# 3. **Carregar Usuário:**
+    # Adicione a função para carregar um usuário por ID.
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+### 3. **Criação da Tela de Login**
+
+# 1. **Rota de Login:**
+    # Crie uma rota para exibir o formulário de login e processar o login.
+
+@app.route("/inicio")
+@login_required
+def inicio():
+    livros = Livro.query.all()
+    return render_template("lista.html", lista_de_livros=livros)
+
+@app.route("/novo")
+@login_required
+def novo():
+    return render_template("novo.html", titulo="Novo Livro")
+
+@app.route("/criar", methods=["POST"])
+@login_required
+def criar():
+    titulo = request.form["titulo"]
+    autor = request.form["autor"]
+    categoria = request.form["categoria"]
+    ano = request.form["ano"]
+    editora = request.form["editora"]
+    livro = Livro(titulo=titulo, autor=autor, categoria=categoria, ano=ano, editora=editora)
+    db.session.add(livro)
+    db.session.commit()
+    return redirect(url_for("inicio"))
+
+@app.route("/editar/<int:id>")
+@login_required
+def editar(id):
+    livro = Livro.query.get(id)
+    if livro:
+        return render_template("editar.html", livro=livro)
+    return redirect(url_for("inicio"))
+
+@app.route("/atualizar/<int:id>", methods=["POST"])
+@login_required
+def atualizar(id):
+    livro = Livro.query.get(id)
+    if livro:
+        livro.titulo = request.form["titulo"]
+        livro.autor = request.form["autor"]
+        livro.categoria = request.form["categoria"]
+        livro.ano = request.form["ano"]
+        livro.editora = request.form["editora"]
+        db.session.commit()
+    return redirect(url_for("inicio"))
+
+@app.route("/deletar/<int:id>")
+@login_required
+def deletar(id):
+    livro = Livro.query.get(id)
+    if livro:
+        db.session.delete(livro)
+        db.session.commit()
+    return redirect(url_for("inicio"))
+
+#2. **Adicionar Link de Logout:**
+    # Adicione um link de logout em uma área visível da aplicação, como em um menu de navegação.
+
 
 
 
